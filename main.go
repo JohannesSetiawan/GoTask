@@ -3,11 +3,14 @@ package main
 import (
 	"net/http"
 	"github.com/gin-gonic/gin"
+	"go-tasker/database"
+	"go-tasker/user"
+	"go-tasker/task"
 )
 
 
 func main() {
-	ConnectDatabase()
+	database.ConnectDatabase()
 	router := gin.Default()
 
 	router.GET("/", func(c *gin.Context) {
@@ -16,13 +19,17 @@ func main() {
 		})
 	})
 
-	router.POST("/register", registerUser)
+	router.POST("/register", user.RegisterUser)
+	router.POST("/login", user.LoginUser)
 
-	router.GET("/tasks", getTasks)
-	router.POST("/tasks", createTask)
-	router.GET("/tasks/:id", getTasksById)
-	router.PUT("/tasks/:id", updateTask)
-	router.DELETE("/tasks/:id", deleteTask)
+	taskApi := router.Group("/api")
+	taskApi.Use(user.AuthMiddleware())
+
+	taskApi.GET("/tasks", task.GetTasks)
+	taskApi.POST("/tasks", task.CreateTask)
+	taskApi.GET("/tasks/:id", task.GetTasksById)
+	taskApi.PUT("/tasks/:id", task.UpdateTask)
+	taskApi.DELETE("/tasks/:id", task.DeleteTask)
 
 	router.Run()
 }

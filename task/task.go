@@ -1,27 +1,21 @@
-package main
+package task
 
 import (
 	"net/http"
-	"gorm.io/gorm"
 	"github.com/gin-gonic/gin"
+
+	"go-tasker/database"
 )
 
-type Task struct{
-	ID          uint `json:"id" gorm:"primary_key"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Status      string `json:"status"`
-	DeletedAt   gorm.DeletedAt `json:"deleted_at"`
-}
 
-func getTasks(c *gin.Context) {
-	var tasks []Task
-	DB.Find(&tasks)
+func GetTasks(c *gin.Context) {
+	var tasks []database.Task
+	database.DB.Find(&tasks)
 	c.JSON(http.StatusOK, tasks)
 }
 
-func createTask(c *gin.Context) {
-	var newTask Task
+func CreateTask(c *gin.Context) {
+	var newTask database.Task
 	if err := c.ShouldBindJSON(&newTask); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -33,40 +27,40 @@ func createTask(c *gin.Context) {
 	if newTask.Status == "" {
 		newTask.Status = "pending"
 	}
-	if err := DB.Create(&newTask).Error; err != nil {
+	if err := database.DB.Create(&newTask).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task"})
 		return
 	}
 	c.JSON(http.StatusCreated, newTask)
 }
 
-func getTasksById(c *gin.Context) {
+func GetTasksById(c *gin.Context) {
 	id := c.Param("id")
-	var task Task
-	if err := DB.First(&task, "id = ?", id).Error; err != nil {
+	var task database.Task
+	if err := database.DB.First(&task, "id = ?", id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
 		return
 	}
 	c.JSON(http.StatusOK, task)
 }
 
-func updateTask(c *gin.Context) {
+func UpdateTask(c *gin.Context) {
 	id := c.Param("id")
-	var updatedTask Task
+	var updatedTask database.Task
 	if err := c.ShouldBindJSON(&updatedTask); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := DB.Model(&Task{}).Where("id = ?", id).Updates(updatedTask).Error; err != nil {
+	if err := database.DB.Model(&database.Task{}).Where("id = ?", id).Updates(updatedTask).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Task updated successfully"})
 }
 
-func deleteTask(c *gin.Context) {
+func DeleteTask(c *gin.Context) {
 	id := c.Param("id")
-	if err := DB.Delete(&Task{}, "id = ?", id).Error; err != nil {
+	if err := database.DB.Delete(&database.Task{}, "id = ?", id).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
 		return
 	}
