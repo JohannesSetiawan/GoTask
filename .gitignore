@@ -1,0 +1,32 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Compiled object files
+*.o
+
+# Go module cache and build artifacts
+vendor/
+go.sum
+go.mod.bak
+*.out
+_obj/
+_test/
+*.prof
+
+# IDE and editor specific files
+.idea/ # JetBrains IDEs (IntelliJ, GoLand)
+.vscode/ # VS Code
+*.iml
+*.ipr
+*.iws
+out/
+
+# Operating system generated files
+.DS_Store # macOS
+Thumbs.db # Windows
