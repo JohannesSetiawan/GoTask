@@ -17,7 +17,7 @@ func ConnectDatabase() {
     if err != nil {
         log.Fatalf("Error loading .env file")
     }
-	
+
 	dsn := os.Getenv("DB_STRING")
 	
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -27,7 +27,7 @@ func ConnectDatabase() {
 
 	fmt.Println("Database connection successful.")
 
-	database.AutoMigrate(&Task{})
+	database.AutoMigrate(&Task{}, &User{})
 
 	DB = database
 }
