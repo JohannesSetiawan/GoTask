@@ -5,6 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"strings"
+
+	"go-tasker/database"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -15,9 +17,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-
-		// Token biasanya dikirim dengan format "Bearer <token>"
-		// Kita perlu memisahkannya.
+		
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header format must be Bearer {token}"})
@@ -27,6 +27,8 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		tokenString := parts[1]
 		claims := &jwt.RegisteredClaims{}
+
+		jwtKey := getJWTSecret()
 
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return jwtKey, nil
@@ -38,7 +40,20 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Jika token valid, lanjutkan ke handler berikutnya
+		claims, ok := token.Claims.(*jwt.RegisteredClaims)
+		if !ok || claims.Issuer == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid claims"})
+			return
+		}
+
+		var user database.User
+		if err := database.DB.Where("id = ?", claims.Issuer).First(&user).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
+		}
+
+		c.Set("user", user)
+		
 		c.Next()
 	}
 }

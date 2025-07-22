@@ -16,4 +16,6 @@ type Task struct{
 	Description string `json:"description"`
 	Status      string `json:"status"`
 	DeletedAt   gorm.DeletedAt `json:"deleted_at"`
+	UserID      uint           `json:"user_id"`
+	User        User           `json:"user" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }

@@ -6,11 +6,28 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"time"
 	"github.com/golang-jwt/jwt/v4"
+	"os"
+	"github.com/joho/godotenv"
+	"log"
 
 	"go-tasker/database"
+	"strconv"
 )
 
-var jwtKey = []byte("kunci_rahasia_super_aman")
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+}
+
+func getJWTSecret() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		panic("JWT_SECRET not set in environment")
+	}
+	return []byte(secret)
+}
 
 func RegisterUser(c *gin.Context) {
 	var user database.User
@@ -52,11 +69,11 @@ func LoginUser(c *gin.Context) {
 	}
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &jwt.RegisteredClaims{
-		Issuer:    dbUser.Username,
+		Issuer:    strconv.FormatUint(uint64(dbUser.ID), 10),
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(getJWTSecret())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
 		return
