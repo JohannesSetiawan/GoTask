@@ -1,13 +1,13 @@
 package main
 
 import (
-	"net/http"
-	"github.com/gin-gonic/gin"
+	"go-tasker/api"
 	"go-tasker/database"
 	"go-tasker/user"
-	"go-tasker/task"
-)
+	"net/http"
 
+	"github.com/gin-gonic/gin"
+)
 
 func main() {
 	database.ConnectDatabase()
@@ -15,21 +15,19 @@ func main() {
 
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"message": "pong!",
+			"message": "Welcome to GoTasker API!",
+			"status":  "running",
 		})
 	})
 
+	// Auth routes (no versioning needed for basic auth)
 	router.POST("/register", user.RegisterUser)
 	router.POST("/login", user.LoginUser)
 
-	taskApi := router.Group("/api")
-	taskApi.Use(user.AuthMiddleware())
-
-	taskApi.GET("/tasks", task.GetTasks)
-	taskApi.POST("/tasks", task.CreateTask)
-	taskApi.GET("/tasks/:id", task.GetTasksById)
-	taskApi.PUT("/tasks/:id", task.UpdateTask)
-	taskApi.DELETE("/tasks/:id", task.DeleteTask)
+	// Setup API versioning
+	api.SetupAPIInfo(router)
+	api.SetupV1Routes(router)
+	api.SetupLegacyRoutes(router)
 
 	router.Run()
 }
