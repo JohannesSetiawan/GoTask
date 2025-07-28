@@ -21,7 +21,7 @@ func init() {
 	}
 }
 
-func getJWTSecret() []byte {
+var getJWTSecret = func() []byte {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		panic("JWT_SECRET not set in environment")

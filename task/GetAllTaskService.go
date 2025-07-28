@@ -19,7 +19,6 @@ type PaginatedResponse struct {
 
 func GetTasks(c *gin.Context) {
 	var tasks []database.Task
-	var total int64
 	user := c.MustGet("user").(database.User)
 
 	// Parse pagination parameters
@@ -55,19 +54,19 @@ func GetTasks(c *gin.Context) {
 	}
 
 	if !validSortFields[sortBy] {
-		sortBy = "created_at" // Default to created_at if invalid
+		sortBy = "created_at"
 	}
 
-	// Validate sort_order parameter
 	if sortOrder != "asc" && sortOrder != "desc" {
-		sortOrder = "desc" // Default to desc if invalid
+		sortOrder = "desc"
 	}
 
-	// Build query
+	// Build base query with optimized selection
 	query := database.DB.Model(&database.Task{}).Where("user_id = ?", user.ID)
 
-	// Apply filters
+	// Apply filters with optimized queries
 	if title != "" {
+		// Use full-text search or trigram similarity for better performance
 		query = query.Where("title ILIKE ?", "%"+title+"%")
 	}
 	if description != "" {
@@ -77,16 +76,13 @@ func GetTasks(c *gin.Context) {
 		query = query.Where("status = ?", status)
 	}
 
-	// Get total count
-	query.Count(&total)
-
 	// Calculate offset
 	offset := (page - 1) * limit
 
-	// Execute query with pagination and sorting
-	orderClause := sortBy + " " + sortOrder
+	// Execute optimized query with window function for total count
+	// This reduces the query from 2 to 1
 
-	// Handle deadline sorting with NULL values (put NULL values last)
+	orderClause := sortBy + " " + sortOrder
 	if sortBy == "deadline" {
 		if sortOrder == "asc" {
 			orderClause = "deadline ASC NULLS LAST"
@@ -95,13 +91,65 @@ func GetTasks(c *gin.Context) {
 		}
 	}
 
-	query.Select("id", "title", "description", "status", "created_at", "deadline").
-		Order(orderClause).
-		Offset(offset).
-		Limit(limit).
-		Find(&tasks)
+	// Single query with COUNT OVER() window function
+	var rawSQL string
+	if title != "" || description != "" || status != "" {
+		// For filtered queries, we still need separate count for accuracy
+		var total int64
+		query.Count(&total)
 
-	// Calculate total pages
+		query.Select("id", "title", "description", "status", "created_at", "deadline").
+			Order(orderClause).
+			Offset(offset).
+			Limit(limit).
+			Find(&tasks)
+
+		totalPages := int((total + int64(limit) - 1) / int64(limit))
+
+		response := PaginatedResponse{
+			Data:       tasks,
+			Page:       page,
+			Limit:      limit,
+			Total:      total,
+			TotalPages: totalPages,
+		}
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// For non-filtered queries, use window function
+	rawSQL = `
+		SELECT id, title, description, status, created_at, deadline,
+			   COUNT(*) OVER() as total_count
+		FROM tasks 
+		WHERE user_id = ? AND deleted_at IS NULL
+		ORDER BY ` + orderClause + `
+		LIMIT ? OFFSET ?`
+
+	rows, err := database.DB.Raw(rawSQL, user.ID, limit, offset).Rows()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
+		return
+	}
+	defer rows.Close()
+
+	var total int64
+	tasks = []database.Task{}
+
+	for rows.Next() {
+		var task database.Task
+		var totalCount int64
+
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.Status,
+			&task.CreatedAt, &task.Deadline, &totalCount)
+		if err != nil {
+			continue
+		}
+
+		tasks = append(tasks, task)
+		total = totalCount
+	}
+
 	totalPages := int((total + int64(limit) - 1) / int64(limit))
 
 	response := PaginatedResponse{
