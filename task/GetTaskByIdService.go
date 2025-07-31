@@ -14,7 +14,7 @@ func GetTasksById(c *gin.Context) {
 	userId := c.MustGet("user").(database.User).ID
 
 	var task database.Task
-	if err := database.DB.Select("id", "title", "description", "status").First(&task, "id = ? AND user_id = ?", id, userId).Error; err != nil {
+	if err := database.DB.Select("id", "title", "description", "status", "created_at", "updated_at").First(&task, "id = ? AND user_id = ?", id, userId).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
 		return
 	}

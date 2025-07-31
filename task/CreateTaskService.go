@@ -22,7 +22,7 @@ func CreateTask(c *gin.Context) {
 		return
 	}
 	if newTask.Status == "" {
-		newTask.Status = "pending"
+		newTask.Status = database.StatusCreated
 	}
 
 	// Validate deadline if provided
