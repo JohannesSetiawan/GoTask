@@ -1,4 +1,4 @@
-package user
+package middleware
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"go-tasker/database"
+	"go-tasker/user"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -28,7 +29,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		tokenString := parts[1]
 		claims := &jwt.RegisteredClaims{}
 
-		jwtKey := getJWTSecret()
+		jwtKey := user.GetJWTSecret()
 
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return jwtKey, nil

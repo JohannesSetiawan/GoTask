@@ -50,7 +50,7 @@ func ConnectDatabase() {
 
 	fmt.Println("Database connection successful with optimized pool settings.")
 
-	database.AutoMigrate(&Task{}, &User{})
+	database.AutoMigrate(&Task{}, &User{}, &Subtask{})
 
 	sqlBytes, err := os.ReadFile("./database/post_migrations.sql")
     if err != nil {

@@ -21,7 +21,7 @@ func init() {
 	}
 }
 
-var getJWTSecret = func() []byte {
+var GetJWTSecret = func() []byte {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		panic("JWT_SECRET not set in environment")
@@ -81,7 +81,7 @@ func LoginUser(c *gin.Context) {
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(getJWTSecret())
+	tokenString, err := token.SignedString(GetJWTSecret())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
 		return
